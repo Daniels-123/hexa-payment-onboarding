@@ -3,6 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { ProductController } from './infrastructure/controllers/product.controller';
+import { TransactionController } from './infrastructure/controllers/transaction.controller';
+import { CreateTransactionUseCase } from './application/use-cases/create-transaction.use-case';
 
 @Module({
   imports: [
@@ -25,7 +27,7 @@ import { ProductController } from './infrastructure/controllers/product.controll
     }),
     InfrastructureModule,
   ],
-  controllers: [ProductController],
-  providers: [],
+  controllers: [ProductController, TransactionController],
+  providers: [CreateTransactionUseCase],
 })
 export class AppModule { }

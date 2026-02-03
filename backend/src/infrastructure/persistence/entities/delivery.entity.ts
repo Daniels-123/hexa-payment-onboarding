@@ -13,7 +13,7 @@ export class DeliveryEntity {
     @Column('decimal', { precision: 10, scale: 2 })
     fee: number;
 
-    @ManyToOne(() => CustomerEntity, (customer) => customer.deliveries)
+    @ManyToOne(() => CustomerEntity, (customer) => customer.deliveries, { cascade: true })
     customer: CustomerEntity;
 
     @OneToOne(() => TransactionEntity, (transaction) => transaction.delivery)

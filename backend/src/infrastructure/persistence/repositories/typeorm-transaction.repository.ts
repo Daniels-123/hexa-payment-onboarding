@@ -19,7 +19,9 @@ export class TypeOrmTransactionRepository implements TransactionRepositoryPort {
     ) { }
 
     async save(transaction: Transaction): Promise<Transaction> {
+        console.log('DEBUG: Saving transaction', transaction);
         const entity = this.toPersistence(transaction);
+        console.log('DEBUG: Persisting entity', entity);
         const saved = await this.repo.save(entity);
         return this.toDomain(saved);
     }
@@ -33,9 +35,12 @@ export class TypeOrmTransactionRepository implements TransactionRepositoryPort {
     }
 
     async update(transaction: Transaction): Promise<void> {
-        const entity = this.toPersistence(transaction);
-        // Ensure ID is set for update
-        await this.repo.save(entity);
+        console.log('DEBUG: Updating transaction', transaction.id, transaction.status);
+        // Use update() to modify specific fields and avoid cascading issues with save()
+        await this.repo.update(transaction.id, {
+            status: transaction.status,
+            externalTransactionId: transaction.externalTransactionId ?? "",
+        });
     }
 
     private toDomain(entity: TransactionEntity): Transaction {
