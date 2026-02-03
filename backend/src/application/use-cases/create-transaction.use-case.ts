@@ -1,4 +1,4 @@
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { ProductRepositoryPort } from '../../domain/ports/spi/product-repository.port';
 import { TransactionRepositoryPort } from '../../domain/ports/spi/transaction-repository.port';
 import { PaymentGatewayPort } from '../../domain/ports/spi/payment-gateway.port';
@@ -6,17 +6,42 @@ import { Transaction, TransactionStatus } from '../../domain/entities/transactio
 import { Product } from '../../domain/entities/product';
 import { Delivery, DeliveryStatus } from '../../domain/entities/delivery';
 import { Customer } from '../../domain/entities/customer';
+import { Result, ApplicationError } from '../../domain/logic/result';
 
-export interface CreateTransactionDto {
+import { IsString, IsNumber, IsEmail, Min, IsUUID } from 'class-validator';
+
+export class CreateTransactionDto {
+    @IsString()
+    @IsUUID()
     productId: string;
+
+    @IsString()
     customerName: string;
+
+    @IsEmail()
     customerEmail: string;
+
+    @IsString()
     customerPhone: string;
+
+    @IsString()
     customerAddress: string;
+
+    @IsString()
     customerCity: string;
+
+    @IsNumber()
+    @Min(1)
     amount: number; // Includes Fee
+
+    @IsString()
     currency: string;
+
+    @IsString()
     cardToken: string;
+
+    @IsNumber()
+    @Min(1)
     installments: number;
 }
 
@@ -31,14 +56,14 @@ export class CreateTransactionUseCase {
         private readonly paymentGateway: PaymentGatewayPort,
     ) { }
 
-    async execute(dto: CreateTransactionDto): Promise<Transaction> {
+    async execute(dto: CreateTransactionDto): Promise<Result<Transaction, ApplicationError>> {
         // 1. Get Product
         const product = await this.productRepo.findById(dto.productId);
         if (!product) {
-            throw new BadRequestException('Product not found');
+            return Result.fail({ message: 'Product not found', code: 'PRODUCT_NOT_FOUND' });
         }
         if (product.stock < 1) {
-            throw new BadRequestException('Product out of stock');
+            return Result.fail({ message: 'Product out of stock', code: 'PRODUCT_OUT_OF_STOCK' });
         }
 
         // 2. Prepare Data
@@ -98,6 +123,6 @@ export class CreateTransactionUseCase {
         // 6. Save Updates
         await this.transactionRepo.update(savedTransaction);
 
-        return savedTransaction;
+        return Result.ok(savedTransaction);
     }
 }
