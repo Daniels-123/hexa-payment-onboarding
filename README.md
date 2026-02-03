@@ -2,7 +2,7 @@
 
 This project is a technical test implementing a full-stack Payment Onboarding application using **Hexagonal Architecture (Ports & Adapters)** and **Railway Oriented Programming (ROP)** principles.
 
-## 🏗 Architecture
+## Architecture
 
 The backend is built with **NestJS** and strictly follows the Hexagonal Architecture:
 
@@ -12,17 +12,8 @@ The backend is built with **NestJS** and strictly follows the Hexagonal Architec
 
 ## Tech Stack
 
--   **Backend**: NestJS, TypeScript, TypeORM.
--   **Database**: PostgreSQL (Dockerized).
--   **Frontend**: React (Planned Phase 2).
--   **Tools**: Docker Compose.
-
-##  Usage
-
-1.  **Clone the repo**:
-    ```bash
     git clone https://github.com/Daniels-123/hexa-payment-onboarding.git
-    ```
+    
 2.  **Start Database**:
     ```bash
     docker-compose up -d
