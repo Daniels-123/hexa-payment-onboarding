@@ -5,6 +5,7 @@ import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { ProductController } from './infrastructure/controllers/product.controller';
 import { TransactionController } from './infrastructure/controllers/transaction.controller';
 import { CreateTransactionUseCase } from './application/use-cases/create-transaction.use-case';
+import { UpdateTransactionStatusUseCase } from './application/use-cases/update-transaction-status.use-case';
 
 @Module({
   imports: [
@@ -28,6 +29,6 @@ import { CreateTransactionUseCase } from './application/use-cases/create-transac
     InfrastructureModule,
   ],
   controllers: [ProductController, TransactionController],
-  providers: [CreateTransactionUseCase],
+  providers: [CreateTransactionUseCase, UpdateTransactionStatusUseCase],
 })
 export class AppModule { }
