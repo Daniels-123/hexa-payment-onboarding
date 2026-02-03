@@ -39,8 +39,11 @@ export const productSlice = createSlice({
                 state.currentProduct.stock -= 1;
             }
         },
+        clearProduct: (state) => {
+            state.currentProduct = null;
+        },
     },
 });
 
-export const { setProduct, setLoading, setError, decrementStock } = productSlice.actions;
+export const { setProduct, setLoading, setError, decrementStock, clearProduct } = productSlice.actions;
 export default productSlice.reducer;
