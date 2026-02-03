@@ -1,0 +1,68 @@
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+
+interface TransactionState {
+    step: 'PRODUCT' | 'PAYMENT' | 'RESULT';
+    status: 'IDLE' | 'PROCESSING' | 'SUCCESS' | 'ERROR';
+    customerData: {
+        name: string;
+        email: string;
+        phone: string;
+        address: string;
+        city: string;
+    };
+    cardToken: string | null;
+    installments: number;
+    transactionId: string | null;
+    error: string | null;
+}
+
+const initialState: TransactionState = {
+    step: 'PRODUCT',
+    status: 'IDLE',
+    customerData: {
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+    },
+    cardToken: null,
+    installments: 1,
+    transactionId: null,
+    error: null,
+};
+
+export const transactionSlice = createSlice({
+    name: 'transaction',
+    initialState,
+    reducers: {
+        setStep: (state, action: PayloadAction<TransactionState['step']>) => {
+            state.step = action.payload;
+        },
+        setStatus: (state, action: PayloadAction<TransactionState['status']>) => {
+            state.status = action.payload;
+        },
+        updateCustomerData: (state, action: PayloadAction<Partial<TransactionState['customerData']>>) => {
+            state.customerData = { ...state.customerData, ...action.payload };
+        },
+        setPaymentData: (state, action: PayloadAction<{ token: string; installments: number }>) => {
+            state.cardToken = action.payload.token;
+            state.installments = action.payload.installments;
+        },
+        setTransactionId: (state, action: PayloadAction<string>) => {
+            state.transactionId = action.payload;
+        },
+        setTransactionError: (state, action: PayloadAction<string | null>) => {
+            state.error = action.payload;
+        },
+        resetTransaction: (state) => {
+            return initialState;
+        }
+    },
+});
+
+export const {
+    setStep, setStatus, updateCustomerData, setPaymentData, setTransactionId, setTransactionError, resetTransaction
+} = transactionSlice.actions;
+
+export default transactionSlice.reducer;
