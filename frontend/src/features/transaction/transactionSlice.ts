@@ -13,6 +13,7 @@ export interface TransactionState {
     cardToken: string | null;
     installments: number;
     transactionId: string | null;
+    externalTransactionId: string | null;
     error: string | null;
 }
 
@@ -29,6 +30,7 @@ const initialState: TransactionState = {
     cardToken: null,
     installments: 1,
     transactionId: null,
+    externalTransactionId: null,
     error: null,
 };
 
@@ -49,8 +51,11 @@ export const transactionSlice = createSlice({
             state.cardToken = action.payload.token;
             state.installments = action.payload.installments;
         },
-        setTransactionId: (state, action: PayloadAction<string>) => {
-            state.transactionId = action.payload;
+        setTransactionId: (state, action: PayloadAction<{ id: string; externalId?: string }>) => {
+            state.transactionId = action.payload.id;
+            if (action.payload.externalId) {
+                state.externalTransactionId = action.payload.externalId;
+            }
         },
         setTransactionError: (state, action: PayloadAction<string | null>) => {
             state.error = action.payload;

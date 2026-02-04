@@ -5,10 +5,12 @@ import { Transaction, TransactionStatus } from '../../domain/entities/transactio
 import { Product } from '../../domain/entities/product';
 import { Delivery, DeliveryStatus } from '../../domain/entities/delivery';
 import { Customer } from '../../domain/entities/customer';
+import { ProductRepositoryPort } from '../../domain/ports/spi/product-repository.port';
 
 describe('UpdateTransactionStatusUseCase', () => {
     let useCase: UpdateTransactionStatusUseCase;
     let transactionRepo: jest.Mocked<TransactionRepositoryPort>;
+    let productRepo: jest.Mocked<ProductRepositoryPort>;
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
@@ -21,11 +23,18 @@ describe('UpdateTransactionStatusUseCase', () => {
                         update: jest.fn(),
                     },
                 },
+                {
+                    provide: ProductRepositoryPort,
+                    useValue: {
+                        updateStock: jest.fn(),
+                    },
+                },
             ],
         }).compile();
 
         useCase = module.get<UpdateTransactionStatusUseCase>(UpdateTransactionStatusUseCase);
         transactionRepo = module.get(TransactionRepositoryPort);
+        productRepo = module.get(ProductRepositoryPort);
     });
 
     const mockTransaction = new Transaction(
@@ -34,7 +43,7 @@ describe('UpdateTransactionStatusUseCase', () => {
         'USD',
         TransactionStatus.PENDING,
         'ref-1',
-        {} as Product,
+        { id: 'prod-1', stock: 10 } as Product,
         {} as Delivery,
         new Date()
     );
@@ -44,7 +53,7 @@ describe('UpdateTransactionStatusUseCase', () => {
         externalId: 'ext-123',
     };
 
-    it('should update transaction status successfully', async () => {
+    it('should update transaction status and deduct stock when approved', async () => {
         transactionRepo.findById.mockResolvedValue(mockTransaction);
 
         const result = await useCase.execute('tx-1', mockDto);
@@ -53,6 +62,18 @@ describe('UpdateTransactionStatusUseCase', () => {
         expect(mockTransaction.status).toBe(TransactionStatus.APPROVED);
         expect(mockTransaction.externalTransactionId).toBe('ext-123');
         expect(transactionRepo.update).toHaveBeenCalledWith(mockTransaction);
+        expect(productRepo.updateStock).toHaveBeenCalledWith('prod-1', 9);
+    });
+
+    it('should NOT deduct stock if status is not APPROVED', async () => {
+        transactionRepo.findById.mockResolvedValue(mockTransaction);
+        const declinedDto = { ...mockDto, status: TransactionStatus.DECLINED };
+
+        const result = await useCase.execute('tx-1', declinedDto);
+
+        expect(result.isSuccess).toBe(true);
+        expect(mockTransaction.status).toBe(TransactionStatus.DECLINED);
+        expect(productRepo.updateStock).not.toHaveBeenCalled();
     });
 
     it('should return failure if transaction is not found', async () => {

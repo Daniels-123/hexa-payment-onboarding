@@ -12,11 +12,15 @@ export class UpdateTransactionStatusDto {
     externalId: string;
 }
 
+import { ProductRepositoryPort } from '../../domain/ports/spi/product-repository.port';
+
 @Injectable()
 export class UpdateTransactionStatusUseCase {
     constructor(
         @Inject(TransactionRepositoryPort)
         private readonly transactionRepo: TransactionRepositoryPort,
+        @Inject(ProductRepositoryPort)
+        private readonly productRepo: ProductRepositoryPort,
     ) { }
 
     async execute(id: string, dto: UpdateTransactionStatusDto): Promise<Result<void, ApplicationError>> {
@@ -26,13 +30,15 @@ export class UpdateTransactionStatusUseCase {
             return Result.fail({ message: 'Transaction not found', code: 'TRANSACTION_NOT_FOUND' });
         }
 
+        // Check if transitioning to APPROVED from a non-approved state
+        if (dto.status === TransactionStatus.APPROVED && transaction.status !== TransactionStatus.APPROVED) {
+            // Deduct Stock
+            await this.productRepo.updateStock(transaction.product.id, transaction.product.stock - 1);
+        }
+
         // Update logic
         transaction.status = dto.status;
         transaction.externalTransactionId = dto.externalId;
-
-        // In a real scenario, we might want to check the previous status to avoid invalid transitions
-        // e.g., if already APPROVED, we shouldn't allow changing to DECLINED easily.
-        // For this MVP/Onboarding, we allow the update.
 
         await this.transactionRepo.update(transaction);
 

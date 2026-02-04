@@ -81,14 +81,62 @@ export const PaymentFlow = ({ isOpen, onClose, onSuccess }: PaymentFlowProps) =>
             });
 
             if (backendRes.data && backendRes.data.id) {
-                dispatch(setTransactionId(backendRes.data.id));
-                if (backendRes.data.status === 'APPROVED') {
+                const internalId = backendRes.data.id;
+                const externalId = backendRes.data.externalTransactionId;
+                
+                dispatch(setTransactionId({ id: internalId, externalId: externalId }));
+                
+                const initialStatus = backendRes.data.status;
+
+                if (initialStatus === 'APPROVED') {
                     dispatch(setStatus('SUCCESS'));
-                    onSuccess(); // Refresh parent stock immediately
+                    onSuccess(); 
+                } else if (initialStatus === 'PENDING') {
+                     // Keep PROCESSING, wait for polling
+                     // Optional: Dispatch a message like "Verifying payment..."
+                     dispatch(setStatus('PROCESSING'));
                 } else {
                     dispatch(setStatus('ERROR'));
-                    dispatch(setTransactionError(`Transaction ${backendRes.data.status}`));
+                    dispatch(setTransactionError(`Transaction ${initialStatus}`));
                 }
+
+                // Polling Check (5 seconds later)
+                setTimeout(async () => {
+                    try {
+                        // 1. Check Wompi
+                        const wompiRes = await axios.get(`https://api-sandbox.co.uat.wompi.dev/v1/transactions/${externalId}`);
+                        const latestStatus = wompiRes.data.data.status;
+                        
+                        console.log(`Polling: Initial ${initialStatus} -> Latest ${latestStatus}`);
+
+                        // 2. If status changed or was PENDING
+                        if (latestStatus !== initialStatus || initialStatus === 'PENDING') {
+                            
+                            // If finalized
+                            if (latestStatus === 'APPROVED') {
+                                // Sync Backend
+                                await axios.patch(`${import.meta.env.VITE_API_URL}/transactions/${internalId}`, {
+                                    status: latestStatus,
+                                    externalId: externalId
+                                });
+                                dispatch(setStatus('SUCCESS'));
+                                onSuccess();
+                            } else if (latestStatus === 'DECLINED' || latestStatus === 'ERROR' || latestStatus === 'VOIDED') {
+                                 // Sync Backend
+                                await axios.patch(`${import.meta.env.VITE_API_URL}/transactions/${internalId}`, {
+                                    status: latestStatus,
+                                    externalId: externalId
+                                });
+                                dispatch(setStatus('ERROR'));
+                                dispatch(setTransactionError(`Transaction ${latestStatus}`));
+                            }
+                            // If still PENDING, do nothing? Or keep waiting? For MVP we stop here.
+                        }
+                    } catch (pollErr) {
+                        console.error('Polling verification failed', pollErr);
+                        // If we were PENDING and polling failed, we might want to tell user to check email
+                    }
+                }, 5000);
             }
         } catch (err: any) {
             console.error(err);
@@ -105,6 +153,14 @@ export const PaymentFlow = ({ isOpen, onClose, onSuccess }: PaymentFlowProps) =>
     if (!currentProduct) return null;
 
     // --- RESULT VIEW ---
+    // Show Result only if SUCCESS or ERROR.
+    // If PROCESSING (Pending), we show the form DISABLED or a specific spinner.
+    // Currently logic: if (status === 'SUCCESS' || status === 'ERROR') -> show Result.
+    
+    // We want to differentiate "Processing submission" vs "Verifying PENDING".
+    // Re-using PROCESSING is fine, it keeps the form disabled.
+    // To give better feedback, we can change the button text based on status.
+
     if (status === 'SUCCESS' || status === 'ERROR') {
          const resultLayer = (
             <div className="flex flex-col h-full bg-white relative items-center justify-center p-6 text-center">
@@ -311,7 +367,13 @@ export const PaymentFlow = ({ isOpen, onClose, onSuccess }: PaymentFlowProps) =>
                     `}
                 >
                     {status === 'PROCESSING' ? (
-                        <>Processing...</>
+                        <>
+                           <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Verifying Payment...
+                        </>
                     ) : (
                         <>Confirm Payment</>
                     )}

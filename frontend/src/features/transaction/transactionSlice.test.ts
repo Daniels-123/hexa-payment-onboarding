@@ -15,6 +15,7 @@ describe('transactionSlice', () => {
         cardToken: null,
         installments: 1,
         transactionId: null,
+        externalTransactionId: null,
         error: null,
     };
 
