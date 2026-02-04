@@ -23,6 +23,12 @@ import { UpdateTransactionStatusUseCase } from './application/use-cases/update-t
         database: configService.get<string>('DB_DATABASE', 'wompi_payment'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true, // Only for development!
+        ssl: true,
+        extra: {
+          ssl: {
+            rejectUnauthorized: false,
+          },
+        },
       }),
       inject: [ConfigService],
     }),

@@ -68,7 +68,7 @@ export const PaymentFlow = () => {
                 acceptanceToken: acceptanceToken
             };
 
-            const response = await axios.post('http://localhost:3000/transactions', payload);
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/transactions`, payload);
             
             if (response.data && response.data.id) {
                  dispatch(setTransactionId(response.data.id));

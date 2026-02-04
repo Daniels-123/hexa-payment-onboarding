@@ -14,8 +14,8 @@ export const ProductScreen = () => {
             dispatch(setLoading(true));
             try {
                 // Fetch products and take the first one for demo purposes
-                // Ensure backend is running at localhost:3000
-                const response = await axios.get('http://localhost:3000/products');
+                // Ensure backend is running and reachable
+                const response = await axios.get(`${import.meta.env.VITE_API_URL}/products`);
                 if (response.data && response.data.length > 0) {
                     dispatch(setProduct(response.data[0])); // Take the first product (e.g. Marvelous Mug)
                 } else {
