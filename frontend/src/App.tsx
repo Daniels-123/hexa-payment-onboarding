@@ -3,8 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Provider } from 'react-redux';
 import { store } from './store';
 import { ProductScreen } from './screens/ProductScreen';
-import { PaymentFlow } from './screens/PaymentFlow';
-import { ResultScreen } from './screens/ResultScreen';
 
 function App() {
   return (
@@ -15,8 +13,6 @@ function App() {
             <div className="w-full max-w-md bg-white shadow-xl min-h-screen overflow-hidden relative">
                 <Routes>
                     <Route path="/" element={<ProductScreen />} />
-                    <Route path="/payment" element={<PaymentFlow />} />
-                    <Route path="/result" element={<ResultScreen />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </div>

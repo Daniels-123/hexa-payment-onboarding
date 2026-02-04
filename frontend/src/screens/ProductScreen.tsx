@@ -1,43 +1,53 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setProduct, setLoading, setError } from '../features/product/productSlice';
+import { PaymentFlow } from './PaymentFlow';
 
 export const ProductScreen = () => {
     const dispatch = useAppDispatch();
-    const navigate = useNavigate();
     const { currentProduct, loading, error } = useAppSelector((state) => state.product);
+    const [showPayment, setShowPayment] = useState(false);
+
+    const fetchProduct = async () => {
+        dispatch(setLoading(true));
+        try {
+            // Fetch products and take the first one for demo purposes
+            // Ensure backend is running and reachable
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/products`);
+            if (response.data && response.data.length > 0) {
+                dispatch(setProduct(response.data[0])); // Take the first product
+            } else {
+                dispatch(setError('No products found. Please seed the database.'));
+            }
+        } catch (err) {
+            dispatch(setError('Failed to fetch product. Ensure backend is running.'));
+        } finally {
+            dispatch(setLoading(false));
+        }
+    };
 
     useEffect(() => {
-        const fetchProduct = async () => {
-            dispatch(setLoading(true));
-            try {
-                // Fetch products and take the first one for demo purposes
-                // Ensure backend is running and reachable
-                const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/products`);
-                if (response.data && response.data.length > 0) {
-                    dispatch(setProduct(response.data[0])); // Take the first product (e.g. Marvelous Mug)
-                } else {
-                    dispatch(setError('No products found. Please seed the database.'));
-                }
-            } catch (err) {
-                dispatch(setError('Failed to fetch product. Ensure backend is running.'));
-            } finally {
-                dispatch(setLoading(false));
-            }
-        };
-
         if (!currentProduct) {
             fetchProduct();
         }
     }, [dispatch, currentProduct]);
 
     const handlePayClick = () => {
-        navigate('/payment');
+        setShowPayment(true);
     };
 
-    if (loading) {
+    const handlePaymentClose = () => {
+        setShowPayment(false);
+    };
+
+    const handlePaymentSuccess = () => {
+        // Refresh product data to update stock
+        fetchProduct();
+    };
+
+
+    if (loading && !currentProduct) {
         return (
             <div className="flex items-center justify-center h-screen text-primary-600">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
@@ -45,7 +55,7 @@ export const ProductScreen = () => {
         );
     }
 
-    if (error) {
+    if (error && !currentProduct) {
         return (
             <div className="flex flex-col items-center justify-center h-screen p-4 text-center">
                 <div className="text-red-500 mb-4 text-xl">⚠️ {error}</div>
@@ -62,13 +72,13 @@ export const ProductScreen = () => {
     if (!currentProduct) return null;
 
     return (
-        <div className="flex flex-col h-full bg-white relative">
+        <div className="flex flex-col md:flex-row h-full bg-white relative">
             {/* Image Section */}
-            <div className="w-full h-1/2 bg-gray-100 flex items-center justify-center relative overflow-hidden">
+            <div className="w-full h-1/2 md:w-1/2 md:h-full bg-gray-100 flex items-center justify-center relative overflow-hidden p-8">
                 <img 
                     src={currentProduct.imgUrl} 
                     alt={currentProduct.name} 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain mix-blend-multiply"
                 />
                  {/* Stock Badge */}
                  <div className="absolute top-4 left-4 bg-white/90 px-3 py-1 rounded-full text-xs font-bold text-gray-700 shadow-sm backdrop-blur-sm">
@@ -77,12 +87,12 @@ export const ProductScreen = () => {
             </div>
 
             {/* Details Section */}
-            <div className="flex-1 p-6 flex flex-col">
-                <div className="flex justify-between items-start mb-2">
-                    <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">
+            <div className="flex-1 md:w-1/2 md:h-full md:overflow-y-auto p-6 flex flex-col">
+                <div className="flex justify-between items-start mb-4 gap-4">
+                    <h1 className="text-3xl font-extrabold text-gray-900 leading-tight">
                         {currentProduct.name}
                     </h1>
-                    <span className="text-2xl font-bold text-primary-600">
+                    <span className="text-2xl font-bold text-blue-600 shrink-0">
                         ${Number(currentProduct.price || 0).toLocaleString()}
                     </span>
                 </div>
@@ -106,6 +116,17 @@ export const ProductScreen = () => {
                         Free shipping on all orders
                     </p>
                 </div>
+            </div>
+
+            {/* PAYMENT MODAL OVERLAY */}
+            <div className={`fixed inset-0 z-50 transition-transform duration-500 ${showPayment ? 'translate-y-0' : 'translate-y-full'}`}>
+                {showPayment && (
+                    <PaymentFlow 
+                        isOpen={showPayment} 
+                        onClose={handlePaymentClose}
+                        onSuccess={handlePaymentSuccess}
+                    />
+                )}
             </div>
         </div>
     );

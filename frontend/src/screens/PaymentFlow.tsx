@@ -1,60 +1,68 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { Backdrop } from '../components/Backdrop/Backdrop';
-import { updateCustomerData, setPaymentData, setStatus, setTransactionId, setTransactionError } from '../features/transaction/transactionSlice';
+import { updateCustomerData, setPaymentData, setStatus, setTransactionId, setTransactionError, resetTransaction } from '../features/transaction/transactionSlice';
 import { getCardType, formatCurrency } from '../utils/validation';
 import axios from 'axios';
 
-export const PaymentFlow = () => {
-    const navigate = useNavigate();
+interface PaymentFlowProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSuccess: () => void; // Trigger stock refresh on parent
+}
+
+export const PaymentFlow = ({ isOpen, onClose, onSuccess }: PaymentFlowProps) => {
     const dispatch = useAppDispatch();
     const { currentProduct } = useAppSelector((state) => state.product);
-    const { customerData, installments, status } = useAppSelector((state) => state.transaction);
+    const { customerData, installments, status, error, transactionId } = useAppSelector((state) => state.transaction);
 
-    // Local state for non-persisted sensitive data (Card Number, etc)
+    // Local state
     const [cardNumber, setCardNumber] = useState('');
     const [expiry, setExpiry] = useState('');
     const [cvc, setCvc] = useState('');
-    
-    // Redirect if no product
-    useEffect(() => {
-        if (!currentProduct) {
-            navigate('/');
-        }
-    }, [currentProduct, navigate]);
 
-    // Derived
+    // Reset when opening
+    useEffect(() => {
+        if (isOpen) {
+             // Optional: Clean form if needed, or keep persistence
+        }
+    }, [isOpen]);
+
     const cardType = getCardType(cardNumber);
 
     const handleProcessPayment = async () => {
         if (!currentProduct) return;
+
+        // Validation
+        if (!cardNumber || !expiry || !cvc || !customerData.name || !customerData.email || !customerData.address || !customerData.city) {
+            dispatch(setStatus('ERROR'));
+            dispatch(setTransactionError('Please fill in all required fields.'));
+            return;
+        }
+
         dispatch(setStatus('PROCESSING'));
 
         try {
             // 1. Fetch Acceptance Token
             const pubKey = import.meta.env.VITE_WOMPI_PUB_KEY;
-            const merchantsUrl = `https://api-sandbox.co.uat.wompi.dev/v1/merchants/${pubKey}`;
-            const merchantRes = await axios.get(merchantsUrl);
-            const acceptanceToken = merchantRes.data.data.presigned_acceptance.acceptance_token;
+            const merchantsRes = await axios.get(`https://api-sandbox.co.uat.wompi.dev/v1/merchants/${pubKey}`);
+            const acceptanceToken = merchantsRes.data.data.presigned_acceptance.acceptance_token;
 
-            // 2. Tokenize Card
-            const tokensUrl = `https://api-sandbox.co.uat.wompi.dev/v1/tokens/cards`;
-            const tokenPayload = {
-                number: cardNumber,
-                cvc: cvc,
-                exp_month: expiry.split('/')[0],
-                exp_year: expiry.split('/')[1],
-                card_holder: customerData.name
-            };
-            
-            const tokenRes = await axios.post(tokensUrl, tokenPayload, {
-                headers: { Authorization: `Bearer ${pubKey}` }
-            });
-            const validToken = tokenRes.data.data.id;
-            
-            // 3. Send to Backend
-            const payload = {
+            // 2. Tokenize
+            const tokenRes = await axios.post(
+                `https://api-sandbox.co.uat.wompi.dev/v1/tokens/cards`,
+                {
+                    number: cardNumber,
+                    cvc: cvc,
+                    exp_month: expiry.split('/')[0],
+                    exp_year: expiry.split('/')[1],
+                    card_holder: customerData.name
+                },
+                { headers: { Authorization: `Bearer ${pubKey}` } }
+            );
+
+            // 3. Backend
+            const backendRes = await axios.post(`${import.meta.env.VITE_API_URL}/transactions`, {
                 productId: currentProduct.id,
                 customerName: customerData.name,
                 customerEmail: customerData.email,
@@ -63,41 +71,85 @@ export const PaymentFlow = () => {
                 customerCity: customerData.city,
                 amount: currentProduct.price,
                 currency: 'COP',
-                cardToken: validToken,
+                cardToken: tokenRes.data.data.id,
                 installments: installments,
                 acceptanceToken: acceptanceToken
-            };
+            });
 
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/transactions`, payload);
-            
-            if (response.data && response.data.id) {
-                 dispatch(setTransactionId(response.data.id));
-                 
-                 if (response.data.status === 'APPROVED') {
-                     dispatch(setStatus('SUCCESS'));
-                 } else {
-                     dispatch(setStatus('ERROR'));
-                     dispatch(setTransactionError(`Transaction was ${response.data.status}`));
-                 }
-                 navigate('/result');
+            if (backendRes.data && backendRes.data.id) {
+                dispatch(setTransactionId(backendRes.data.id));
+                if (backendRes.data.status === 'APPROVED') {
+                    dispatch(setStatus('SUCCESS'));
+                    onSuccess(); // Refresh parent stock immediately
+                } else {
+                    dispatch(setStatus('ERROR'));
+                    dispatch(setTransactionError(`Transaction ${backendRes.data.status}`));
+                }
             }
-        } catch (error: any) {
-            console.error(error);
+        } catch (err: any) {
+            console.error(err);
             dispatch(setStatus('ERROR'));
-            dispatch(setTransactionError(error.response?.data?.message || 'Transaction failed'));
-            navigate('/result');
+            dispatch(setTransactionError(err.response?.data?.message || 'Payment Failed'));
         }
+    };
+
+    const handleClose = () => {
+        dispatch(resetTransaction());
+        onClose();
     };
 
     if (!currentProduct) return null;
 
-    // --- Back Layer Content ---
+    // --- RESULT VIEW ---
+    if (status === 'SUCCESS' || status === 'ERROR') {
+         const resultLayer = (
+            <div className="flex flex-col h-full bg-white relative items-center justify-center p-6 text-center">
+                {status === 'SUCCESS' ? (
+                    <div className="items-center flex flex-col">
+                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                            <svg className="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h2>
+                        <p className="text-gray-500 mb-8">ID: {transactionId}</p>
+                    </div>
+                ) : (
+                    <div className="items-center flex flex-col">
+                        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
+                            <svg className="h-10 w-10 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Failed</h2>
+                        <p className="text-red-500 mb-8">{error}</p>
+                    </div>
+                )}
+                <button
+                    onClick={handleClose} // Closes modal and resets
+                    className="w-full bg-gray-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-gray-800 transition-transform active:scale-95"
+                >
+                    Close & Continue
+                </button>
+            </div>
+         );
+
+         return (
+             <Backdrop 
+                backLayer={<div className="h-full bg-primary-800"></div>} // Simple background
+                frontLayer={resultLayer}
+                revealed={isOpen}
+             />
+         );
+    }
+
+    // --- FORM VIEW ---
     const backLayer = (
         <div className="flex flex-col h-full bg-primary-800 p-6 pt-10">
              <div className="flex justify-between items-center text-white mb-6">
-                 <button onClick={() => navigate('/')} className="text-white/80 hover:text-white">
+                 <button onClick={onClose} className="text-white/80 hover:text-white">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                  </button>
                  <span className="font-semibold">Checkout</span>
@@ -123,12 +175,15 @@ export const PaymentFlow = () => {
         </div>
     );
 
-    // --- Front Layer Content ---
     const frontLayer = (
-        <div className="p-6 flex flex-col h-full relative">
-            <h2 className="text-xl font-bold text-gray-800 mb-6">Payment Details</h2>
+        <div className="flex flex-col h-full bg-white relative">
+            {/* Header */}
+            <div className="p-6 pb-2 shrink-0">
+                <h2 className="text-xl font-bold text-gray-800">Payment Details</h2>
+            </div>
             
-            <div className="flex-1 overflow-y-auto space-y-4 pb-20">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
                 {/* Credit Card Section */}
                 <div className="space-y-3">
                     <label className="text-xs font-bold text-gray-500 uppercase">Card Information</label>
@@ -150,7 +205,28 @@ export const PaymentFlow = () => {
                             type="text" 
                             placeholder="MM/YY" 
                             value={expiry}
-                            onChange={(e) => setExpiry(e.target.value)}
+                            onChange={(e) => {
+                                let val = e.target.value.replace(/\D/g, '');
+                                if (val.length > 4) val = val.substring(0, 4);
+                                
+                                // Month Validation
+                                if (val.length >= 2) {
+                                  const month = parseInt(val.substring(0, 2));
+                                  if (month > 12 || month === 0) {
+                                      // Invalid month, keep only the first char if it was valid, or nothing
+                                      // Or better: just don't accept the last typed char if it makes it invalid
+                                      // Implementation: If invalid, keep old value? 
+                                      // Simplest effective UX: don't allow typing > 1 for first digit if second isn't there yet?
+                                      // Let's just strip the change if month > 12
+                                      return; 
+                                  }
+                                }
+                                
+                                if (val.length > 2) {
+                                    val = `${val.substring(0, 2)}/${val.substring(2)}`;
+                                }
+                                setExpiry(val);
+                            }}
                             className="w-1/2 p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                         />
                          <input 
@@ -215,14 +291,15 @@ export const PaymentFlow = () => {
                 </div>
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-50 z-20">
+            {/* Sticky Footer */}
+            <div className="p-6 bg-white border-t border-gray-50 shrink-0">
                 <button
                     onClick={handleProcessPayment}
                     disabled={status === 'PROCESSING'}
                     className={`
                         w-full py-4 rounded-xl shadow-lg text-white font-bold text-lg
                         flex items-center justify-center gap-2 transition-all
-                        ${status === 'PROCESSING' ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary-600 hover:bg-primary-700 active:scale-95'}
+                        ${status === 'PROCESSING' ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 active:scale-95'}
                     `}
                 >
                     {status === 'PROCESSING' ? (
@@ -239,7 +316,7 @@ export const PaymentFlow = () => {
         <Backdrop 
             backLayer={backLayer}
             frontLayer={frontLayer}
-            revealed={true} // Always active for this screen
+            revealed={isOpen} 
         />
     );
 };
