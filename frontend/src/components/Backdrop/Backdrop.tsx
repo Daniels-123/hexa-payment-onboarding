@@ -31,7 +31,7 @@ export const Backdrop: React.FC<BackdropProps> = ({
                 className={`
                     absolute left-0 right-0 bottom-0 
                     bg-white rounded-t-2xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] 
-                    z-10 overflow-auto transition-transform duration-300 ease-in-out
+                    z-10 overflow-hidden transition-transform duration-300 ease-in-out
                     flex flex-col
                 `}
                 style={{ 

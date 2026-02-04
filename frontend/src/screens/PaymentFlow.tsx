@@ -125,7 +125,7 @@ export const PaymentFlow = () => {
 
     // --- Front Layer Content ---
     const frontLayer = (
-        <div className="p-6 flex flex-col h-full">
+        <div className="p-6 flex flex-col h-full relative">
             <h2 className="text-xl font-bold text-gray-800 mb-6">Payment Details</h2>
             
             <div className="flex-1 overflow-y-auto space-y-4 pb-20">
@@ -215,7 +215,7 @@ export const PaymentFlow = () => {
                 </div>
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-50">
+            <div className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-50 z-20">
                 <button
                     onClick={handleProcessPayment}
                     disabled={status === 'PROCESSING'}
