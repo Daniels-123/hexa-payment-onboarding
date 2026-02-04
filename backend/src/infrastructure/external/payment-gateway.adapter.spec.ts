@@ -52,7 +52,7 @@ describe('PaymentGatewayAdapter', () => {
         };
         mockHttpService.post.mockReturnValue(of(mockResponse));
 
-        const result = await adapter.processPayment(100, 'COP', 'tok_test', 1, 'accept_tok');
+        const result = await adapter.processPayment(100, 'COP', 'tok_test', 1, 'accept_tok', 'test@example.com');
 
         expect(result.id).toBe('12345');
         expect(result.status).toBe('PENDING');
@@ -62,7 +62,7 @@ describe('PaymentGatewayAdapter', () => {
     it('should handle errors gracefully', async () => {
         mockHttpService.post.mockReturnValue(throwError(() => new Error('API Error')));
 
-        const result = await adapter.processPayment(100, 'COP', 'tok_test', 1, 'accept_tok');
+        const result = await adapter.processPayment(100, 'COP', 'tok_test', 1, 'accept_tok', 'test@example.com');
 
         expect(result.status).toBe('ERROR');
         expect(result.id).toBe('');

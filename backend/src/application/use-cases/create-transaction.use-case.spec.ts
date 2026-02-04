@@ -33,7 +33,7 @@ describe('CreateTransactionUseCase', () => {
                 {
                     provide: PaymentGatewayPort,
                     useValue: {
-                        processPayment: jest.fn((a, c, t, i, at) => Promise.resolve({ id: 'mock', status: 'APPROVED', reference: 'ref' } as any)),
+                        processPayment: jest.fn((a, c, t, i, at, ce) => Promise.resolve({ id: 'mock', status: 'APPROVED', reference: 'ref' } as any)),
                     },
                 },
             ],
@@ -57,6 +57,7 @@ describe('CreateTransactionUseCase', () => {
         currency: 'USD',
         cardToken: 'tok_test',
         installments: 1,
+        acceptanceToken: 'test-token',
     };
 
     it('should create a transaction successfully when payment is approved', async () => {

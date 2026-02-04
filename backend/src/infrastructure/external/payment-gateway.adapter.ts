@@ -26,6 +26,7 @@ export class PaymentGatewayAdapter implements PaymentGatewayPort {
         token: string,
         installments: number,
         acceptanceToken: string,
+        customerEmail: string,
     ): Promise<PaymentResponse> {
         try {
             // Basic payload
@@ -43,7 +44,7 @@ export class PaymentGatewayAdapter implements PaymentGatewayPort {
             const payload = {
                 amount_in_cents: rawAmount,
                 currency: currency,
-                customer_email: 'test@test.com', // Should be passed
+                customer_email: customerEmail,
                 payment_method: {
                     type: 'CARD',
                     token: token,

@@ -107,6 +107,7 @@ export class CreateTransactionUseCase {
             dto.cardToken,
             dto.installments,
             dto.acceptanceToken,
+            dto.customerEmail,
         );
 
         // 5. Update based on result

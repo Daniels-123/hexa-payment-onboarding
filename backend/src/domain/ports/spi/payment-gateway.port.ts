@@ -11,6 +11,7 @@ export interface PaymentGatewayPort {
         token: string, // Card token or specialized representation
         installments: number,
         acceptanceToken: string,
+        customerEmail: string,
     ): Promise<PaymentResponse>;
 }
 
