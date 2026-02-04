@@ -91,13 +91,12 @@ export const PaymentFlow = ({ isOpen, onClose, onSuccess }: PaymentFlowProps) =>
                 if (initialStatus === 'APPROVED') {
                     dispatch(setStatus('SUCCESS'));
                     onSuccess(); 
-                } else if (initialStatus === 'PENDING') {
-                     // Keep PROCESSING, wait for polling
-                     // Optional: Dispatch a message like "Verifying payment..."
-                     dispatch(setStatus('PROCESSING'));
                 } else {
-                    dispatch(setStatus('ERROR'));
-                    dispatch(setTransactionError(`Transaction ${initialStatus}`));
+                     // For PENDING, DECLINED, ERROR:
+                     // Keep PROCESSING, wait for polling to confirm final status.
+                     // This prevents flashing "Error" if it updates to Approved, 
+                     // and provides a consistent "Verifying..." experience.
+                     dispatch(setStatus('PROCESSING'));
                 }
 
                 // Polling Check (5 seconds later)
@@ -109,10 +108,15 @@ export const PaymentFlow = ({ isOpen, onClose, onSuccess }: PaymentFlowProps) =>
                         
                         console.log(`Polling: Initial ${initialStatus} -> Latest ${latestStatus}`);
 
-                        // 2. If status changed or was PENDING
-                        if (latestStatus !== initialStatus || initialStatus === 'PENDING') {
+                        // 2. Sync if needed
+                        // Always sync if status changed, or if we need to show the final error now
+                        if (latestStatus !== initialStatus || initialStatus !== 'APPROVED') {
+                             // Correct logic:
+                             // If it became APPROVED -> Success
+                             // If it stayed DECLINED/ERROR -> Show Error NOW.
+                             // If it stayed PENDING -> Show Error? Or keep Processing? 
+                             // User said "Update when finished". We'll assume 5s is the limit.
                             
-                            // If finalized
                             if (latestStatus === 'APPROVED') {
                                 // Sync Backend
                                 await axios.patch(`${import.meta.env.VITE_API_URL}/transactions/${internalId}`, {
@@ -121,20 +125,25 @@ export const PaymentFlow = ({ isOpen, onClose, onSuccess }: PaymentFlowProps) =>
                                 });
                                 dispatch(setStatus('SUCCESS'));
                                 onSuccess();
-                            } else if (latestStatus === 'DECLINED' || latestStatus === 'ERROR' || latestStatus === 'VOIDED') {
-                                 // Sync Backend
-                                await axios.patch(`${import.meta.env.VITE_API_URL}/transactions/${internalId}`, {
-                                    status: latestStatus,
-                                    externalId: externalId
-                                });
+                            } else {
+                                // It is NOT approved (Declined, Error, Voided, or still Pending)
+                                // We must show the result now.
+                                // Sync Backend just in case it changed
+                                if (latestStatus !== initialStatus) {
+                                    await axios.patch(`${import.meta.env.VITE_API_URL}/transactions/${internalId}`, {
+                                        status: latestStatus,
+                                        externalId: externalId
+                                    });
+                                }
+                                
                                 dispatch(setStatus('ERROR'));
                                 dispatch(setTransactionError(`Transaction ${latestStatus}`));
                             }
-                            // If still PENDING, do nothing? Or keep waiting? For MVP we stop here.
                         }
                     } catch (pollErr) {
                         console.error('Polling verification failed', pollErr);
-                        // If we were PENDING and polling failed, we might want to tell user to check email
+                        dispatch(setStatus('ERROR'));
+                        dispatch(setTransactionError('Verification failed. Please check your email.'));
                     }
                 }, 5000);
             }
