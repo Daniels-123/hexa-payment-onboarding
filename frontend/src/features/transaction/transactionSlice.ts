@@ -56,6 +56,7 @@ export const transactionSlice = createSlice({
             state.error = action.payload;
         },
         resetTransaction: (state) => {
+            localStorage.removeItem('transactionState');
             return initialState;
         }
     },
