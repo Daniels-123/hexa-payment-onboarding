@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 interface BackdropProps {
     backLayer: ReactNode;
@@ -10,14 +10,14 @@ interface BackdropProps {
      * Let's assume Back Layer is always visible at top, Front Layer enters from bottom.
      */
     revealed?: boolean; 
-    headerHeight?: string; // height of the visible back layer part
+    // headerHeight?: string; // removed unused
 }
 
 export const Backdrop: React.FC<BackdropProps> = ({ 
     backLayer, 
     frontLayer, 
     revealed = false, 
-    headerHeight = 'h-16' // default 64px header 
+    // headerHeight = 'h-16' 
 }) => {
     return (
         <div className="relative w-full h-screen bg-primary-800 overflow-hidden flex flex-col">

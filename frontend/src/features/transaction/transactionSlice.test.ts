@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import transactionReducer, { setStep, updateCustomerData, setPaymentData, resetTransaction } from './transactionSlice';
+import transactionReducer, { setStep, updateCustomerData, setPaymentData, resetTransaction, type TransactionState } from './transactionSlice';
 
 describe('transactionSlice', () => {
-    const initialState = {
+    const initialState: TransactionState = {
         step: 'PRODUCT',
         status: 'IDLE',
         customerData: {

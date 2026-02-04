@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { resetTransaction } from '../features/transaction/transactionSlice';
-import { setProduct, clearProduct } from '../features/product/productSlice'; // To force re-fetch or clear
+import { clearProduct } from '../features/product/productSlice'; // To force re-fetch or clear
 
 export const ResultScreen = () => {
     const navigate = useNavigate();

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { Backdrop } from '../components/Backdrop/Backdrop';
-import { updateCustomerData, setPaymentData, setStep, setStatus, setTransactionId, setTransactionError } from '../features/transaction/transactionSlice';
+import { updateCustomerData, setPaymentData, setStatus, setTransactionId, setTransactionError } from '../features/transaction/transactionSlice';
 import { getCardType, formatCurrency } from '../utils/validation';
 import axios from 'axios';
 
@@ -10,7 +10,7 @@ export const PaymentFlow = () => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const { currentProduct } = useAppSelector((state) => state.product);
-    const { customerData, cardToken, installments, step, status } = useAppSelector((state) => state.transaction);
+    const { customerData, installments, status } = useAppSelector((state) => state.transaction);
 
     // Local state for non-persisted sensitive data (Card Number, etc)
     const [cardNumber, setCardNumber] = useState('');

@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-interface TransactionState {
+export interface TransactionState {
     step: 'PRODUCT' | 'PAYMENT' | 'RESULT';
     status: 'IDLE' | 'PROCESSING' | 'SUCCESS' | 'ERROR';
     customerData: {
@@ -55,7 +55,7 @@ export const transactionSlice = createSlice({
         setTransactionError: (state, action: PayloadAction<string | null>) => {
             state.error = action.payload;
         },
-        resetTransaction: (state) => {
+        resetTransaction: () => {
             localStorage.removeItem('transactionState');
             return initialState;
         }
