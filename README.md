@@ -8,7 +8,7 @@ This project implements a credit card payment flow integrated with an **External
 
 ## Live Demo
 
--   **Frontend (AWS S3)**: [http://mi-proyecto-spa-2026.s3-website-us-east-1.amazonaws.com](http://mi-proyecto-spa-2026.s3-website-us-east-1.amazonaws.com)
+-   **Frontend (AWS CloudFront)**: [https://d3nopilcv164t0.cloudfront.net/](https://d3nopilcv164t0.cloudfront.net/)
 -   **Backend (AWS EC2)**: [http://100.53.137.249:3000/api](http://100.53.137.249:3000/api)
 -   **Database (AWS RDS)**: PostgreSQL hosted on AWS RDS.
 
