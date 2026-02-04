@@ -83,7 +83,7 @@ export const ProductScreen = () => {
                         {currentProduct.name}
                     </h1>
                     <span className="text-2xl font-bold text-primary-600">
-                        ${parseFloat(currentProduct.price.toString()).toLocaleString()}
+                        ${Number(currentProduct.price || 0).toLocaleString()}
                     </span>
                 </div>
 
