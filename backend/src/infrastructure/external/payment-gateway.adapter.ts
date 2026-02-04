@@ -25,13 +25,23 @@ export class PaymentGatewayAdapter implements PaymentGatewayPort {
         currency: string,
         token: string,
         installments: number,
+        acceptanceToken: string,
     ): Promise<PaymentResponse> {
         try {
             // Basic payload
             const reference = `TX-${Date.now()}`;
 
+            // Signature Generation
+            const rawAmount = amount * 100; // Centavos
+            const amountStr = String(rawAmount); // No decimals if integer
+            const integrityString = `${reference}${amountStr}${currency}${this.integrityKey}`;
+
+            // Create SHA-256 hash using Node's crypto
+            const crypto = require('crypto');
+            const signature = crypto.createHash('sha256').update(integrityString).digest('hex');
+
             const payload = {
-                amount_in_cents: amount * 100, // COP is usually in cents
+                amount_in_cents: rawAmount,
                 currency: currency,
                 customer_email: 'test@test.com', // Should be passed
                 payment_method: {
@@ -40,7 +50,8 @@ export class PaymentGatewayAdapter implements PaymentGatewayPort {
                     installments: installments,
                 },
                 reference: reference,
-                acceptance_token: 'PRE_GENERATED_ACCEPTANCE_TOKEN',
+                acceptance_token: acceptanceToken,
+                signature: signature
             };
 
             const { data } = await firstValueFrom(
@@ -50,6 +61,8 @@ export class PaymentGatewayAdapter implements PaymentGatewayPort {
                     },
                 }),
             );
+
+            this.logger.log(`Transaction response from Wompi: ${JSON.stringify(data.data)}`);
 
             return {
                 id: data.data.id,

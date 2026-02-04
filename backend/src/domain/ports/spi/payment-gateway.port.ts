@@ -10,6 +10,7 @@ export interface PaymentGatewayPort {
         currency: string,
         token: string, // Card token or specialized representation
         installments: number,
+        acceptanceToken: string,
     ): Promise<PaymentResponse>;
 }
 

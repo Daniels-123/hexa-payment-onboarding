@@ -43,6 +43,9 @@ export class CreateTransactionDto {
     @IsNumber()
     @Min(1)
     installments: number;
+
+    @IsString()
+    acceptanceToken: string;
 }
 
 @Injectable()
@@ -103,6 +106,7 @@ export class CreateTransactionUseCase {
             dto.currency,
             dto.cardToken,
             dto.installments,
+            dto.acceptanceToken,
         );
 
         // 5. Update based on result

@@ -32,9 +32,28 @@ export const PaymentFlow = () => {
         dispatch(setStatus('PROCESSING'));
 
         try {
-            // Mock Tokenization (Normally checking Luhn here or sending to Wompi JS)
-            const mockToken = `tok_${cardType.toLowerCase()}_${Date.now()}`; 
+            // 1. Fetch Acceptance Token
+            const pubKey = import.meta.env.VITE_WOMPI_PUB_KEY;
+            const merchantsUrl = `https://api-sandbox.co.uat.wompi.dev/v1/merchants/${pubKey}`;
+            const merchantRes = await axios.get(merchantsUrl);
+            const acceptanceToken = merchantRes.data.data.presigned_acceptance.acceptance_token;
+
+            // 2. Tokenize Card
+            const tokensUrl = `https://api-sandbox.co.uat.wompi.dev/v1/tokens/cards`;
+            const tokenPayload = {
+                number: cardNumber,
+                cvc: cvc,
+                exp_month: expiry.split('/')[0],
+                exp_year: expiry.split('/')[1],
+                card_holder: customerData.name
+            };
             
+            const tokenRes = await axios.post(tokensUrl, tokenPayload, {
+                headers: { Authorization: `Bearer ${pubKey}` }
+            });
+            const validToken = tokenRes.data.data.id;
+            
+            // 3. Send to Backend
             const payload = {
                 productId: currentProduct.id,
                 customerName: customerData.name,
@@ -42,17 +61,24 @@ export const PaymentFlow = () => {
                 customerPhone: customerData.phone,
                 customerAddress: customerData.address,
                 customerCity: customerData.city,
-                amount: currentProduct.price, // Should include delivery fee? assuming free for now
+                amount: currentProduct.price,
                 currency: 'COP',
-                cardToken: mockToken,
-                installments: installments
+                cardToken: validToken,
+                installments: installments,
+                acceptanceToken: acceptanceToken
             };
 
             const response = await axios.post('http://localhost:3000/transactions', payload);
             
             if (response.data && response.data.id) {
                  dispatch(setTransactionId(response.data.id));
-                 dispatch(setStatus('SUCCESS'));
+                 
+                 if (response.data.status === 'APPROVED') {
+                     dispatch(setStatus('SUCCESS'));
+                 } else {
+                     dispatch(setStatus('ERROR'));
+                     dispatch(setTransactionError(`Transaction was ${response.data.status}`));
+                 }
                  navigate('/result');
             }
         } catch (error: any) {

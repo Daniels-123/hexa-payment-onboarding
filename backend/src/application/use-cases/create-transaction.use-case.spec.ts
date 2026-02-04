@@ -33,7 +33,7 @@ describe('CreateTransactionUseCase', () => {
                 {
                     provide: PaymentGatewayPort,
                     useValue: {
-                        processPayment: jest.fn(),
+                        processPayment: jest.fn((a, c, t, i, at) => Promise.resolve({ id: 'mock', status: 'APPROVED', reference: 'ref' } as any)),
                     },
                 },
             ],
