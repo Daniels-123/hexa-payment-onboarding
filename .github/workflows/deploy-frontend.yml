@@ -40,3 +40,6 @@ jobs:
 
       - name: Deploy to S3
         run: aws s3 sync dist/ s3://mi-proyecto-spa-2026 --delete
+
+      - name: Invalidate CloudFront Cache
+        run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"

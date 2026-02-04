@@ -30,6 +30,10 @@ export const PaymentFlow = ({ isOpen, onClose, onSuccess }: PaymentFlowProps) =>
 
     const cardType = getCardType(cardNumber);
 
+    const BASE_FEE = 5000;
+    const DELIVERY_FEE = 4000;
+    const totalAmount = Number(currentProduct?.price || 0) + BASE_FEE + DELIVERY_FEE;
+
     const handleProcessPayment = async () => {
         if (!currentProduct) return;
 
@@ -69,7 +73,7 @@ export const PaymentFlow = ({ isOpen, onClose, onSuccess }: PaymentFlowProps) =>
                 customerPhone: customerData.phone,
                 customerAddress: customerData.address,
                 customerCity: customerData.city,
-                amount: currentProduct.price,
+                amount: totalAmount, // Send Total with Fees
                 currency: 'COP',
                 cardToken: tokenRes.data.data.id,
                 installments: installments,
@@ -158,7 +162,7 @@ export const PaymentFlow = ({ isOpen, onClose, onSuccess }: PaymentFlowProps) =>
              
              <div className="text-white/80 text-sm mb-1">Total to pay</div>
              <div className="text-4xl font-bold text-white mb-8">
-                 {formatCurrency(currentProduct.price)}
+                 {formatCurrency(totalAmount)}
              </div>
 
              <div className="bg-white/10 rounded-lg p-4 mb-4">
@@ -167,9 +171,13 @@ export const PaymentFlow = ({ isOpen, onClose, onSuccess }: PaymentFlowProps) =>
                      <span>{currentProduct.name}</span>
                      <span>{formatCurrency(currentProduct.price)}</span>
                  </div>
+                 <div className="flex justify-between text-white text-sm mb-1">
+                     <span>Base Fee</span>
+                     <span>{formatCurrency(BASE_FEE)}</span>
+                 </div>
                  <div className="flex justify-between text-white text-sm">
                      <span>Shipping</span>
-                     <span>$0.00</span>
+                     <span>{formatCurrency(DELIVERY_FEE)}</span>
                  </div>
              </div>
         </div>
