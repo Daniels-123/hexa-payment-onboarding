@@ -73,7 +73,6 @@ The database schema consists of the following core entities:
 -   **Customers**: Purchaser details linked to transactions.
 -   **Deliveries**: Shipping information.
 
-_(Detailed Entity Relationship Diagram would go here)_
 
 ---
 
